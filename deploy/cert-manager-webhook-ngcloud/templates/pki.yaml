@@ -1,0 +1,55 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "webhook.fullname" . }}-selfsign
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "webhook.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "webhook.fullname" . }}-ca
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "webhook.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "webhook.fullname" . }}-ca
+  duration: 43800h # 5y
+  isCA: true
+  commonName: {{ include "webhook.fullname" . }}-ca
+  issuerRef:
+    name: {{ include "webhook.fullname" . }}-selfsign
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "webhook.fullname" . }}-ca
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "webhook.labels" . | nindent 4 }}
+spec:
+  ca:
+    secretName: {{ include "webhook.fullname" . }}-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "webhook.fullname" . }}-tls
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "webhook.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "webhook.fullname" . }}-tls
+  duration: 8760h # 1y
+  dnsNames:
+    - {{ include "webhook.fullname" . }}
+    - {{ include "webhook.fullname" . }}.{{ .Release.Namespace }}
+    - {{ include "webhook.fullname" . }}.{{ .Release.Namespace }}.svc
+    - {{ include "webhook.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    name: {{ include "webhook.fullname" . }}-ca
+    kind: Issuer
