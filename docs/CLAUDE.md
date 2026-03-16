@@ -84,6 +84,35 @@ Key constants (defined in `ngcloud/client.go`):
 - `isSuccessful` is `null` (not `false`) while an operation is in progress — the poll loop must not exit on null.
 - Delete operations always produce a platform-generated follow-up operation that finishes with `isSuccessful: false` and `errorLog` containing "Услуга удалена" ("Service deleted"). This means the record **was** successfully deleted; treat it as success.
 
+### Known platform bug: `/run` returns 500 "key [EXECUTABLE] doesn't exist"
+
+**Status (2026-03-16):** Conformance tests fail due to a Nubes deck-api backend bug. All client-side API calls are correct (steps 1–5 all return 2xx).
+
+At step 6 (`POST /instanceOperations/{uid}/run`), the server fails with:
+```json
+{"ERROR": "key [EXECUTABLE] doesn't exist",
+ "TAGCONTEXT": "/app/api/v1/resources/instance_operation_run.cfc [Line 283]"}
+```
+
+Server-side code at line 283:
+```cfml
+<cfset var jobData=#deserializeJson(job.filecontent)#/>
+<cfset operation_url=jobData.executable.url />
+```
+
+The `job.filecontent` JSON in the platform's internal DB is missing the `executable` key. This is supposed to be populated by an internal "orchestrator" service that mediates between deck-api and Jenkins. That orchestrator has an **empty hostname** — confirmed by a secondary error seen when re-running an already-submitted operation: `"Cannot connect to the orchestrator. Host name may not be empty"` (line 341).
+
+The svcOperation 45 itself is correctly configured — it has:
+```
+url: https://jenkins-master1.adl.nubes.ru/job/cloudServicesprod/job/powerdns/job/Records/job/create/view/tags/job/1.0.4/buildWithParameters
+```
+
+**What to tell Nubes support:**
+- Endpoint: `POST /instanceOperations/{uid}/run`
+- Error: `key [EXECUTABLE] doesn't exist` at `instance_operation_run.cfc [Line 283]`
+- Root cause: `submitJob()` reads `job.filecontent` from DB; the `executable` key is absent because the orchestrator service responsible for writing it has an empty hostname (`instance_operation_run.cfc [Line 341]`)
+- Service ID: 111 (DNS запись), svcOperationId: 45 (create), 46 (delete)
+
 ## Running the Conformance Test
 
 Requires envtest binaries. Install once:
