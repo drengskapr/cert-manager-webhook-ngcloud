@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	defaultBaseURL  = "https://deck-api.ngcloud.ru/api/v1/index.cfm"
+	defaultBaseURL  = "https://lk-api-gateway.ngcloud.ru/api/v1/svc"
 	serviceID       = 111
 	svcOpCreate     = 45
 	svcOpDelete     = 46

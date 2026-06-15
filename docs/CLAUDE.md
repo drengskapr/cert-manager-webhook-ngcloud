@@ -63,7 +63,12 @@ to v0.34.1 to match cert-manager v1.19.4.
 
 ## Nubes deck-api
 
-Base URL: `https://deck-api.ngcloud.ru/api/v1/index.cfm`. Auth: Bearer token via `Authorization` header.
+Base URL: `https://lk-api-gateway.ngcloud.ru/api/v1/svc`. Auth: Bearer token via `Authorization` header.
+
+> **Endpoint migration (2026-06-15):** the client now targets the `lk-api-gateway.ngcloud.ru/api/v1/svc`
+> gateway. The previous base URL was `https://deck-api.ngcloud.ru/api/v1/index.cfm`. The base URL is an
+> unexported default in `ngcloud/client.go` and is not user-configurable, so this is an internal change
+> (no `Issuer`, Helm values, or Secret changes required).
 
 Key constants (defined in `ngcloud/client.go`):
 - DNS Records service ID: `111`
