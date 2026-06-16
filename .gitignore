@@ -10,6 +10,7 @@
 /_test/
 /apiserver.local.config/
 /_out/
+test/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -26,3 +27,7 @@
 # Make artifacts
 _out
 _test
+
+# testing
+webhook
+log*

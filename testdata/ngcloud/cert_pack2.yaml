@@ -1,0 +1,13 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rrrec-ngcloud
+  namespace: cert-manager
+spec:
+  secretName: tttls
+  issuerRef:
+    name: letsencrypt-ngcloud
+    kind: ClusterIssuer
+  dnsNames:
+    - "rrrec.mydns.zone"
