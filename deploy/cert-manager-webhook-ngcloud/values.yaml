@@ -21,6 +21,13 @@ groupName: acme.ngcloud.ru
 # -- release namespace. Leave empty if you manage the Secret yourself.
 apiToken: ""
 
+# -- Logging configuration
+logging:
+  # -- Enable debug logging (--v=1 or higher)
+  debug: false
+  # -- Verbosity level (0-10). If debug is true, sets v=1, otherwise v=0
+  verbosity: 1
+
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager

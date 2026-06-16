@@ -1,0 +1,52 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rec-ngcloud
+  namespace: cert-manager
+spec:
+  secretName: tls
+  issuerRef:
+    name: letsencrypt-ngcloud
+    kind: ClusterIssuer
+  dnsNames:
+    - "rec.mydns.zone"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rec-ngcloud1
+  namespace: cert-manager
+spec:
+  secretName: tls1
+  issuerRef:
+    name: letsencrypt-ngcloud
+    kind: ClusterIssuer
+  dnsNames:
+    - "rec1.mydns.zone"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rec-ngcloud2
+  namespace: cert-manager
+spec:
+  secretName: tls2
+  issuerRef:
+    name: letsencrypt-ngcloud
+    kind: ClusterIssuer
+  dnsNames:
+    - "rec2.mydns.zone"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rec-ngcloud3
+  namespace: cert-manager
+spec:
+  secretName: tls3
+  issuerRef:
+    name: letsencrypt-ngcloud
+    kind: ClusterIssuer
+  dnsNames:
+    - "rec3.mydns.zone"
