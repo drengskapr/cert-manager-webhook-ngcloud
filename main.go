@@ -4,18 +4,16 @@ import (
 	"os"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
-	"go.uber.org/zap/zapcore"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
-	opts := zap.Options{
-		Development: false,
-		TimeEncoder: zapcore.ISO8601TimeEncoder,
-	}
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	// Route the controller-runtime logger (used by ngcloud/client.go) into klog so
+	// every logging path — client, solver, startup — converges on the single
+	// klog/component-base pipeline the webhook framework configures via
+	// --logging-format and --v.
+	ctrl.SetLogger(klog.Background())
 
 	groupName := os.Getenv("GROUP_NAME")
 	if groupName == "" {
