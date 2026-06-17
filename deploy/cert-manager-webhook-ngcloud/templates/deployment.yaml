@@ -24,6 +24,7 @@ spec:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
             - --secure-port={{ .Values.containerPort }}
+            - --logging-format={{ .Values.logging.format | default "json" }}
             {{- if .Values.logging.debug }}
             - --v={{ .Values.logging.verbosity | default 1 }}
             {{- end }}

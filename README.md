@@ -135,7 +135,17 @@ helm upgrade --install cert-manager-webhook-ngcloud deploy/cert-manager-webhook-
   --set apiToken=your-nubes-api-token
 ```
 
-Also if need to debug
+### Logging
+
+The webhook logs through a single klog-based pipeline. Two Helm values control it:
+
+- `logging.format` — `json-rfc3339` (default; JSON with RFC3339Nano `ts` timestamps such as
+  `2026-06-17T12:46:13.398936Z`, recommended for log aggregators), `json` (JSON with
+  epoch-millis timestamps), or `text` (local dev).
+- `logging.debug` — set `true` to raise verbosity (renders `--v`, default `1`), which
+  surfaces the deck-api client's debug lines such as `CreateTXTRecord called`.
+  `logging.verbosity` overrides the level.
+
 ```bash
 helm upgrade --install cert-manager-webhook-ngcloud deploy/cert-manager-webhook-ngcloud \
   --namespace cert-manager \

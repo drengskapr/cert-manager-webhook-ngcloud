@@ -75,7 +75,6 @@ roleRef:
 subjects:
   - apiGroup: ""
     kind: ServiceAccount
-#    name: shturval-{{ .Values.certManager.serviceAccountName }}
     name: {{ .Values.certManager.serviceAccountName }}
     namespace: {{ .Values.certManager.namespace | quote }}
 

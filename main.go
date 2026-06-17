@@ -4,18 +4,24 @@ import (
 	"os"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
-	"go.uber.org/zap/zapcore"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
-	opts := zap.Options{
-		Development: false,
-		TimeEncoder: zapcore.ISO8601TimeEncoder,
+	// Route the controller-runtime logger (used by ngcloud/client.go) into klog so
+	// every logging path — client, solver, startup — converges on the single
+	// klog/component-base pipeline the webhook framework configures via
+	// --logging-format and --v.
+	ctrl.SetLogger(klog.Background())
+
+	// Register the json-rfc3339 log format before the webhook framework parses
+	// flags and freezes the format registry. This adds a JSON format with
+	// RFC3339Nano timestamps alongside the built-in text/json formats.
+	if err := registerJSONRFC3339Format(); err != nil {
+		klog.ErrorS(err, "Failed to register log format", "format", jsonRFC3339Format)
+		os.Exit(1)
 	}
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	groupName := os.Getenv("GROUP_NAME")
 	if groupName == "" {
