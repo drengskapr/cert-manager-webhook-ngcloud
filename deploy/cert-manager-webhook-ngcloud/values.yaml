@@ -23,9 +23,12 @@ apiToken: ""
 
 # -- Logging configuration
 logging:
-  # -- Enable debug logging (--v=1 or higher)
+  # -- Output format: "json" (recommended for log aggregators) or "text" (local dev)
+  format: json
+  # -- Enable debug logging (renders --v=<verbosity>)
   debug: false
-  # -- Verbosity level (0-10). If debug is true, sets v=1, otherwise v=0
+  # -- Verbosity level (0-10). Only applied when debug is true. v=1 surfaces the
+  # -- deck-api client's debug lines.
   verbosity: 1
 
 certManager:
