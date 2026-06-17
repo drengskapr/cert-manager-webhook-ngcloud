@@ -73,25 +73,46 @@ Base URL: `https://lk-api-gateway.ngcloud.ru/api/v1/svc`. Auth: Bearer token via
 Key constants (defined in `ngcloud/client.go`):
 - DNS Records service ID: `111`
 - Operation IDs: `create=45`, `delete=46`, `modify=90`
-- Poll: 60 attempts × 5s
+- Poll: up to 120 attempts × 5s, bounded by a 120s wall-clock `operationTimeout` (whichever is hit first)
+- HTTP client request timeout: 120s
 - Default TXT record TTL: 120s
 
 ### API Flow for DNS record operations
-1. Fetch CFS parameters (`GET /instanceOperations/default/{svcOperationId}?fields=...`) — resolves label→id mappings
-2. Create an instance (`POST /instances`) with `serviceId` and `displayName` (`"dnsrecord-<name>"`) — HTTP 400 "not unique" means instance already exists; treat as success
-3. Retrieve instance UID (`GET /instances?serviceId=111`) — filter by `displayName`, pick **most recently created** match
-4. Create an operation (`POST /instanceOperations`) — extract `operationUid` from `Location` header
-5. Push CFS params individually (`POST /instanceOperationCfsParams`) — create only, not delete
-6. Run the operation (`POST /instanceOperations/{operationUid}/run`) — if response has a `Location` with a new UUID, poll that child UID instead
-7. Poll (`GET /instanceOperations/{operationUid}`) until `isSuccessful=true`
+
+Both create and delete are funneled through a single `executeOperation(displayName, opType, state, pushParams)` helper:
+
+1. Resolve the instance:
+   - **create:** `getOrCreateInstance` — look up the instance by `displayName` first and reuse it; only `POST /instances` (with `serviceId` + `displayName` `"dnsrecord-<name>"`) when none exists. This avoids accumulating duplicate instances on every call. HTTP 400 "not unique" is still treated as success.
+   - **delete:** look up the existing instance only (no create).
+2. Retrieve instance UID (`GET /instances?serviceId=111`) — filter by `displayName`, pick the **oldest** match (`instanceConfigDtCreated` ascending), assumed to be the live record.
+3. Create an operation (`POST /instanceOperations`) — extract `operationUid` from the `Location` header. On HTTP 409/400, recover and reuse the existing `operationUid` from `Location` instead of failing.
+4. (create only) Fetch CFS parameters (`GET /instanceOperations/default/{svcOperationId}?fields=...`) and push them individually (`POST /instanceOperationCfsParams`). Delete needs no CFS params.
+5. Run the operation (`POST /instanceOperations/{operationUid}/run`) — poll the **original** `operationUid` (the client no longer follows a child UUID from the `/run` `Location` header). HTTP 422 containing "Concurrent operations" is treated as "already running", not an error.
+6. Wait via `waitForOperation` (`GET /instanceOperations/{operationUid}`) — poll until `dtFinish` is set, then succeed on `isSuccessful=true` (or a delete-confirmation `errorLog`, see quirks).
+
+### Asynchronous execution model
+
+`CreateTXTRecord` does not block on the full flow. It keeps an in-memory operation cache (`operations map[string]*operationState`, keyed by `displayName`, guarded by `operationsMu`):
+
+- If an operation for the same record is already `pending`/`running`, the call **waits on that operation** instead of starting a duplicate (deduplication against cert-manager's concurrent/retried `Present()` calls).
+- Otherwise it runs the real flow in a **background goroutine** and `select`s: it returns the real result if the goroutine finishes within **5 seconds**, otherwise it returns success early and lets the goroutine continue.
+- Consequence: an error that occurs **after** the 5s window is logged but **not** returned to cert-manager. Cert-manager's own DNS self-check before ACME validation is the backstop. The early-return path is a deliberate workaround for cold-start workers where the deck-api stalls (see the comment in `CreateTXTRecord`).
+
+`DeleteTXTRecord` runs synchronously (no cache/goroutine) and treats a "not found" instance as already deleted.
 
 ### Known API quirks
-- `isSuccessful` is `null` (not `false`) while an operation is in progress — the poll loop must not exit on null.
-- Delete operations always produce a platform-generated follow-up operation that finishes with `isSuccessful: false` and `errorLog` containing "Услуга удалена" ("Service deleted"). This means the record **was** successfully deleted; treat it as success.
+- `isSuccessful` is `null` (not `false`) while an operation is in progress — the poll loop waits for `dtFinish` to be set and must not exit on null.
+- Delete operations always produce a platform-generated follow-up operation that finishes with `isSuccessful: false` and `errorLog` containing "Услуга удалена" ("Service deleted"). This means the record **was** successfully deleted; treat it as success. `waitForOperation` also treats `errorLog` containing "already deleted" or "not found" as success.
 
-### Known platform bug: `/run` returns 500 "key [EXECUTABLE] doesn't exist"
+### Resolved: `/run` 500 "key [EXECUTABLE] doesn't exist" (historical)
 
-**Status (2026-03-16):** Conformance tests fail due to a Nubes deck-api backend bug. All client-side API calls are correct (steps 1–5 all return 2xx).
+> **Status (2026-06-17): RESOLVED.** The reworked `client.go` (asynchronous, idempotent
+> execution — operation cache, get-or-create instance, 409/422 reuse, background goroutine) was
+> tested against the live deck-api and the full create/delete flow now works end-to-end. The
+> `/run` step succeeds; the `EXECUTABLE` error below is no longer observed. The detail is kept
+> as historical context in case the platform-side fault recurs.
+
+**Original status (2026-03-16):** Conformance tests failed due to a Nubes deck-api backend bug. All client-side API calls were correct (steps 1–5 all returned 2xx).
 
 At step 6 (`POST /instanceOperations/{uid}/run`), the server fails with:
 ```json

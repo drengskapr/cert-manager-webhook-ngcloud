@@ -202,10 +202,10 @@ func (c *Client) CreateTXTRecord(zoneUID, recordName, recordValue string) error 
 		return nil
 	case <-time.After(5 * time.Second):
 		/*
-			! КОСТЫЛЬ если deck-api подвисает
-			По идее как запускаться не должен, но если все воркеры в холодном старте и на старте они подвисают
-			(доступ к registry, новый образ и т.д.), то спасает от повторного резапуска операции.
-			Ощущается как небольшая задержка
+			Workaround for when the deck-api hangs.
+			In principle this branch should not be reached, but if all workers are
+			in a cold start and stall on startup (registry access, new image, etc.),
+			it prevents the operation from being re-triggered. Feels like a small delay.
 		*/
 		log.V(1).Info("Operation started in background, returning success")
 		return nil
