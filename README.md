@@ -128,11 +128,21 @@ To also create the API token Secret from Helm (optional, skip if you manage
 the Secret yourself):
 
 ```bash
-helm install cert-manager-webhook-ngcloud deploy/cert-manager-webhook-ngcloud \
+helm upgrade --install cert-manager-webhook-ngcloud deploy/cert-manager-webhook-ngcloud \
   --namespace cert-manager \
   --set image.repository=registry.example.com/cert-manager-webhook-ngcloud \
   --set image.tag=v1.0.0 \
   --set apiToken=your-nubes-api-token
+```
+
+Also if need to debug
+```bash
+helm upgrade --install cert-manager-webhook-ngcloud deploy/cert-manager-webhook-ngcloud \
+  --namespace cert-manager \
+  --set image.repository=registry.example.com/cert-manager-webhook-ngcloud \
+  --set image.tag=v1.0.0 \
+  --set apiToken=your-nubes-api-token \
+  --set logging.debug=true
 ```
 
 This creates a Secret named `ngcloud-api-token` in the `cert-manager` namespace.
