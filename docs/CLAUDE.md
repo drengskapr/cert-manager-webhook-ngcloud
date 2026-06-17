@@ -47,9 +47,22 @@ cert-manager-webhook-nubes/
 
 ## Logging
 
-Structured logging via `k8s.io/klog/v2` in `solver.go`. The controller-runtime logger is
-initialized in `main.go` using `go.uber.org/zap` with `zapcore.ISO8601TimeEncoder` (all
-timestamps in ISO 8601 format). Logs go to stdout and are suitable for any log aggregator.
+All logging flows through a single **klog / component-base** pipeline. `main.go` calls
+`ctrl.SetLogger(klog.Background())`, so the controller-runtime logger used by
+`ngcloud/client.go` (`ctrl.Log.WithName("ngcloud-client")`) delegates to klog — the same
+path `solver.go` already uses via `klog.InfoS`/`klog.Info`. There is no separate logging setup.
+
+The cert-manager webhook framework (component-base) registers and applies the standard
+Kubernetes logging flags:
+
+- `--logging-format=json|text` (default `text`) — controls the output encoder. The Helm
+  chart passes `--logging-format=json` by default (`logging.format`).
+- `--v=N` — controls verbosity, **including** the client's `log.V(1).Info(...)` debug lines
+  (logr `V(1)` maps to klog `--v=1`). The Helm chart renders `--v` only when
+  `logging.debug` is true.
+
+The startup line `klog.InfoS("Starting cert-manager-webhook-ngcloud", ...)` in `main.go`
+prints before the framework applies the format, so it always appears as klog text.
 
 ## Dependencies
 
