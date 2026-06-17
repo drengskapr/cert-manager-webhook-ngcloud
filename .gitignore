@@ -31,3 +31,6 @@ _test
 # testing
 webhook
 log*
+
+# agents
+docs/superpowers
