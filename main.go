@@ -15,6 +15,14 @@ func main() {
 	// --logging-format and --v.
 	ctrl.SetLogger(klog.Background())
 
+	// Register the json-rfc3339 log format before the webhook framework parses
+	// flags and freezes the format registry. This adds a JSON format with
+	// RFC3339Nano timestamps alongside the built-in text/json formats.
+	if err := registerJSONRFC3339Format(); err != nil {
+		klog.ErrorS(err, "Failed to register log format", "format", jsonRFC3339Format)
+		os.Exit(1)
+	}
+
 	groupName := os.Getenv("GROUP_NAME")
 	if groupName == "" {
 		groupName = "acme.ngcloud.ru"

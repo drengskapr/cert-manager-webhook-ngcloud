@@ -30,7 +30,7 @@ _test
 
 # testing
 webhook
-log*
+*.log
 
 # agents
 docs/superpowers

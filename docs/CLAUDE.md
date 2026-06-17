@@ -55,14 +55,33 @@ path `solver.go` already uses via `klog.InfoS`/`klog.Info`. There is no separate
 The cert-manager webhook framework (component-base) registers and applies the standard
 Kubernetes logging flags:
 
-- `--logging-format=json|text` (default `text`) — controls the output encoder. The Helm
-  chart passes `--logging-format=json` by default (`logging.format`).
+- `--logging-format=json-rfc3339|json|text` (framework default `text`) — controls the
+  output encoder. The Helm chart passes `--logging-format=json-rfc3339` by default
+  (`logging.format`).
+  - `json-rfc3339` is a **custom format registered by this webhook** (`logging.go`). It is
+    identical to component-base's built-in `json` except the `ts` field is an RFC3339Nano
+    string (e.g. `2026-06-17T12:46:13.398936Z`) instead of epoch milliseconds. The built-in
+    `json` format hardcodes the epoch-millis encoder and exposes no option to change it, so
+    `main.go` calls `registerJSONRFC3339Format()` (which uses the exported
+    `json.NewJSONLogger` with a custom `zapcore.EncoderConfig`) **before** the framework
+    freezes the format registry at flag-parse time. It reuses the same `LoggingBetaOptions`
+    feature gate as the built-in `json` format.
 - `--v=N` — controls verbosity, **including** the client's `log.V(1).Info(...)` debug lines
   (logr `V(1)` maps to klog `--v=1`). The Helm chart renders `--v` only when
   `logging.debug` is true.
 
 The startup line `klog.InfoS("Starting cert-manager-webhook-ngcloud", ...)` in `main.go`
 prints before the framework applies the format, so it always appears as klog text.
+
+The custom format factory in `logging.go` is unit-tested in `logging_test.go`
+(`TestRFC3339JSONFactoryEncodesTimestamp`). Because `solver_test.go` pulls in cert-manager's
+envtest harness (whose `init()` panics without etcd), run the logging test with the
+`TEST_ASSET_*` env vars set to any existing path and a `-run` filter, e.g.:
+
+```bash
+TEST_ASSET_ETCD=/bin/true TEST_ASSET_KUBE_APISERVER=/bin/true TEST_ASSET_KUBECTL=/bin/true \
+  go test -run TestRFC3339JSONFactoryEncodesTimestamp .
+```
 
 ## Dependencies
 

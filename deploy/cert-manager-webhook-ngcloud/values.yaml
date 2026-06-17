@@ -23,8 +23,10 @@ apiToken: ""
 
 # -- Logging configuration
 logging:
-  # -- Output format: "json" (recommended for log aggregators) or "text" (local dev)
-  format: json
+  # -- Output format: "json-rfc3339" (JSON with RFC3339Nano timestamps,
+  # -- recommended for log aggregators), "json" (JSON with epoch-millis
+  # -- timestamps), or "text" (local dev).
+  format: json-rfc3339
   # -- Enable debug logging (renders --v=<verbosity>)
   debug: false
   # -- Verbosity level (0-10). Only applied when debug is true. v=1 surfaces the
