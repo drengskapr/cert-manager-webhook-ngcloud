@@ -47,6 +47,24 @@ service:
 containerPort: 6443
 
 resources: {}
+
+# -- Pod-level security context. Defaults satisfy the "restricted" Pod Security
+# -- Standard. The image already runs as nonroot (UID 65532); these settings
+# -- make that contract explicit and enforce it.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container-level security context. The webhook only reads the mounted TLS
+# -- secret and binds a port, so a read-only root filesystem is safe.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
 nodeSelector: {}
 tolerations: []
 affinity: {}
